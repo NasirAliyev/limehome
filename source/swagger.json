@@ -1,0 +1,265 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Booking API",
+    "version": "v1",
+    "description": "API for managing hotel bookings and extensions"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["health"],
+        "operationId": "healthCheck",
+        "summary": "Health check endpoint",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/booking": {
+      "post": {
+        "tags": ["bookings"],
+        "operationId": "createBooking",
+        "summary": "Create a new booking",
+        "description": "Creates a new booking for a guest in a specific unit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Booking created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input or business rule violation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "sameGuestSameUnit": {
+                    "value": "The given guest name cannot book the same unit multiple times"
+                  },
+                  "sameGuestMultipleUnits": {
+                    "value": "The same guest cannot be in multiple units at the same time"
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Unit already occupied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "For the given check-in date, the unit is already occupied"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/booking/{id}": {
+      "patch": {
+        "tags": ["bookings"],
+        "operationId": "extendBooking",
+        "summary": "Extend an existing booking",
+        "description": "Extends the duration of an existing booking by adding additional nights",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Booking ID",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtendBookingInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Booking extended successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "invalidId": {
+                    "value": "Invalid booking ID"
+                  },
+                  "invalidNights": {
+                    "value": "Additional nights must be greater than 0"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Booking does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Booking not found"
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Extension conflicts with existing booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Extension conflicts with existing booking"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Internal server error"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BookingInput": {
+        "type": "object",
+        "required": ["guestName", "unitID", "checkInDate", "numberOfNights"],
+        "properties": {
+          "guestName": {
+            "type": "string",
+            "description": "Name of the guest making the booking"
+          },
+          "unitID": {
+            "type": "string",
+            "description": "ID of the unit to be booked"
+          },
+          "checkInDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Check-in date (YYYY-MM-DD format)"
+          },
+          "numberOfNights": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "description": "Number of nights for the booking"
+          }
+        }
+      },
+      "ExtendBookingInput": {
+        "type": "object",
+        "required": ["additionalNights"],
+        "properties": {
+          "additionalNights": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "description": "Number of additional nights to add to the booking"
+          }
+        }
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Unique booking identifier"
+          },
+          "guestName": {
+            "type": "string",
+            "description": "Name of the guest"
+          },
+          "unitID": {
+            "type": "string",
+            "description": "ID of the booked unit"
+          },
+          "checkInDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Check-in date"
+          },
+          "numberOfNights": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of nights for the booking"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "OK"
+          }
+        }
+      }
+    }
+  }
+}
